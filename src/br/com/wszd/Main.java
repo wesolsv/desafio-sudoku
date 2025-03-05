@@ -2,6 +2,7 @@ package br.com.wszd;
 
 import br.com.wszd.model.Board;
 import br.com.wszd.model.Space;
+import br.com.wszd.util.BoardTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +20,7 @@ public class Main {
 
     private final static int BOARD_SIZE = 9;
 
-    private static final double FIXED_PROBABILITY = 0.4;
+    private static final double FIXED_PROBABILITY = 0.45;
 
     public static void main(String[] args) {
 
@@ -31,7 +32,7 @@ public class Main {
 
         var option = -1;
 
-        while (option != 0 ){
+        while (true){
             System.out.println("Seja bem vindo(a), escolha uma opção para iniciar: ");
             System.out.println("1 - Novo Jogo");
             System.out.println("2 - Incluir um novo número");
@@ -67,13 +68,21 @@ public class Main {
 
         List<List<Space>> spaces = new ArrayList<>();
 
-        for (int i = 0; i < BOARD_SIZE; i++){
+        for (int i = 0; i < BOARD_SIZE; i++) {
             spaces.add(new ArrayList<>());
-            for(int j = 0; j < BOARD_SIZE; j++){
-                var positionConfig = positions.get("%s,%s").formatted(i, j);
-                var expected = Integer.parseInt(positionConfig.split(",")[0]);
-                var fixed = Boolean.parseBoolean(positionConfig.split(",")[1]);
-                var currentSpace = new Space(expected, fixed);
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                String key = String.format("%d,%d", i, j); // Formata a chave corretamente
+                String positionConfig = positions.get(key); // Busca no mapa
+
+                if (positionConfig == null) {
+                    throw new IllegalArgumentException("Posição não encontrada no mapa: " + key);
+                }
+
+                String[] parts = positionConfig.split(",");
+                int expected = Integer.parseInt(parts[0]);
+                boolean fixed = Boolean.parseBoolean(parts[1]);
+
+                Space currentSpace = new Space(expected, fixed);
                 spaces.get(i).add(currentSpace);
             }
         }
@@ -120,25 +129,103 @@ public class Main {
     }
 
     private static void showCurrectGame() {
+        if(isNull(board)){
+            System.out.println("O jogo ainda não foi iniciado");
+            return;
+        }
+
+        var args = new Object[81];
+        var argPos = 0;
+        for (int i = 0; i < BOARD_SIZE; i++){
+            for (var col: board.getSpaces()){
+                args[argPos ++] = " " + ((isNull(col.get(i).getActual())) ? " " : col.get(i).getActual());
+            }
+        }
+        System.out.println("Seu jogo se enconrta da seguinte forma");
+        System.out.printf((BoardTemplate.BOARD_TEMPLATE) + "\n", args);
+
     }
 
     private static void showGameStatus() {
+        if(isNull(board)){
+            System.out.println("O jogo ainda não foi iniciado");
+            return;
+        }
+
+        System.out.printf("O jogo atualmente se encontra no status %s\n", board.getStatus().getLabel());
+        if(board.hasErrors()){
+            System.out.println("O jogo tem erros");
+        }else {
+            System.out.println("O jogo não contém erros");
+        }
     }
 
     private static void clearGame() {
+        if(isNull(board)){
+            System.out.println("O jogo ainda não foi iniciado");
+            return;
+        }
+
+        System.out.println("Você deseja realmente limpar o tabuleiro do jogo? S/N");
+        System.out.println("PERDERÁ TODO O SEU PROGRESSO!!!");
+        var confirm = scanner.next();
+        while (!confirm.equalsIgnoreCase("S") && !confirm.equalsIgnoreCase("N")){
+            System.out.println("Opção inválida, digite S ou N para confirmar!");
+            confirm = scanner.next();
+        }
+        if(confirm.equalsIgnoreCase("S")){
+            board.reset();
+        }
     }
 
     private static void finishGame() {
+        if(isNull(board)){
+            System.out.println("O jogo ainda não foi iniciado");
+            return;
+        }
+
+        if(board.gameIsFinished()){
+            System.out.println("Parabéns você finalizou o jogo");
+            showCurrectGame();
+            board = null;
+        }else if(board.hasErrors()){
+            System.out.println("Seu jogo contém erros, verifique o board e ajuste-o");
+        }else {
+            System.out.println("Você ainda precisa preencher alguns espaços");
+        }
     }
 
 
     private static Stream<String> generatePositions(Random random) {
+        int[][] boardPositions = new int[BOARD_SIZE][BOARD_SIZE];
+
         return Stream.of(IntStream.range(0, BOARD_SIZE * BOARD_SIZE)
                 .mapToObj(i -> {
                     int row = i / BOARD_SIZE;
                     int col = i % BOARD_SIZE;
-                    int num = random.nextInt(BOARD_SIZE) + 1;
+
+                    Set<Integer> validNumbers = new HashSet<>(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
+
+                    for (int j = 0; j < BOARD_SIZE; j++) {
+                        validNumbers.remove(boardPositions[row][j]);
+                    }
+
+                    for (int j = 0; j < BOARD_SIZE; j++) {
+                        validNumbers.remove(boardPositions[j][col]);
+                    }
+
+                    int startRow = (row / 3) * 3;
+                    int startCol = (col / 3) * 3;
+                    for (int r = startRow; r < startRow + 3; r++) {
+                        for (int c = startCol; c < startCol + 3; c++) {
+                            validNumbers.remove(boardPositions[r][c]);
+                        }
+                    }
+
+                    int num = validNumbers.isEmpty() ? 0 : new ArrayList<>(validNumbers).get(random.nextInt(validNumbers.size()));
                     boolean isFixed = random.nextDouble() < FIXED_PROBABILITY;
+                    boardPositions[row][col] = num;
+
                     return col + "," + row + ";" + num + "," + isFixed;
                 }).toArray(String[]::new)
         );
