@@ -18,7 +18,7 @@ public class BoardService {
         this.board = new Board(initBoard(gameConfig));
     }
 
-    private List<List<Space>> getSpaces(){
+    public List<List<Space>> getSpaces(){
         return board.getSpaces();
     }
 

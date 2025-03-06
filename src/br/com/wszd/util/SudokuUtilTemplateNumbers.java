@@ -34,7 +34,7 @@ public final class SudokuUtilTemplateNumbers {
                             validNumbers.remove(boardPositions[r][c]);
                         }
                     }
-                    
+
                     int num = validNumbers.isEmpty() ? 0 : new ArrayList<>(validNumbers).get(random.nextInt(validNumbers.size()));
                     boolean isFixed = random.nextDouble() < FIXED_PROBABILITY;
                     boardPositions[row][col] = num;
