@@ -3,12 +3,14 @@ package br.com.wszd;
 import br.com.wszd.model.Board;
 import br.com.wszd.model.Space;
 import br.com.wszd.util.BoardTemplate;
+import br.com.wszd.util.SudokuUtilTemplateNumbers;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static br.com.wszd.util.SudokuUtilTemplateNumbers.generatePositions;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
@@ -19,8 +21,6 @@ public class Main {
     private static Board board;
 
     private final static int BOARD_SIZE = 9;
-
-    private static final double FIXED_PROBABILITY = 0.45;
 
     public static void main(String[] args) {
 
@@ -71,8 +71,8 @@ public class Main {
         for (int i = 0; i < BOARD_SIZE; i++) {
             spaces.add(new ArrayList<>());
             for (int j = 0; j < BOARD_SIZE; j++) {
-                String key = String.format("%d,%d", i, j); // Formata a chave corretamente
-                String positionConfig = positions.get(key); // Busca no mapa
+                String key = String.format("%d,%d", i, j);
+                String positionConfig = positions.get(key);
 
                 if (positionConfig == null) {
                     throw new IllegalArgumentException("Posição não encontrada no mapa: " + key);
@@ -195,41 +195,6 @@ public class Main {
         }
     }
 
-
-    private static Stream<String> generatePositions(Random random) {
-        int[][] boardPositions = new int[BOARD_SIZE][BOARD_SIZE];
-
-        return Stream.of(IntStream.range(0, BOARD_SIZE * BOARD_SIZE)
-                .mapToObj(i -> {
-                    int row = i / BOARD_SIZE;
-                    int col = i % BOARD_SIZE;
-
-                    Set<Integer> validNumbers = new HashSet<>(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
-
-                    for (int j = 0; j < BOARD_SIZE; j++) {
-                        validNumbers.remove(boardPositions[row][j]);
-                    }
-
-                    for (int j = 0; j < BOARD_SIZE; j++) {
-                        validNumbers.remove(boardPositions[j][col]);
-                    }
-
-                    int startRow = (row / 3) * 3;
-                    int startCol = (col / 3) * 3;
-                    for (int r = startRow; r < startRow + 3; r++) {
-                        for (int c = startCol; c < startCol + 3; c++) {
-                            validNumbers.remove(boardPositions[r][c]);
-                        }
-                    }
-
-                    int num = validNumbers.isEmpty() ? 0 : new ArrayList<>(validNumbers).get(random.nextInt(validNumbers.size()));
-                    boolean isFixed = random.nextDouble() < FIXED_PROBABILITY;
-                    boardPositions[row][col] = num;
-
-                    return col + "," + row + ";" + num + "," + isFixed;
-                }).toArray(String[]::new)
-        );
-    }
 
     private static int runUntilGetValueNumber(final int min, final int max){
         var current = scanner.nextInt();
